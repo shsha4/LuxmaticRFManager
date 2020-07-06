@@ -1,7 +1,9 @@
 package com.mat.luxmaticrfmanager;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -10,15 +12,22 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class BleService extends Service {
 
@@ -26,6 +35,7 @@ public class BleService extends Service {
 
     private BluetoothManager bleManager;
     private BluetoothAdapter bleAdapter;
+    private BluetoothDevice device;
     private BluetoothGatt bleGatt;
     private String bleDeviceAdd;
 
@@ -34,6 +44,8 @@ public class BleService extends Service {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
     private int mConnectionState = STATE_DISCONNECTED;
+    private boolean passChk = false;
+    private boolean passFail = false;
 
     public final static String ACTION_GATT_CONNECTED =
             "ACTION_GATT_CONNECTED";
@@ -46,14 +58,44 @@ public class BleService extends Service {
     public final static String ACTION_DATA_WRITE =
             "ACTION_DATA_WRITE";
     public final static String EXTRA_DATA = "EXTRA_DATA";
+    public final static int BONDED = 0;
 
     public final static UUID UUID_MAT_CL420 = UUID.fromString(CL420UUID.MAT_CL420);
 
+    //본딩 연결 확인
+    IntentFilter filter = new IntentFilter();
+
+    private final BroadcastReceiver requestReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            int mType = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
+
+            if(device.getBondState() == BluetoothDevice.BOND_BONDING){
+                System.out.println("본딩중");
+            }else if(device.getBondState() == BluetoothDevice.BOND_BONDED){
+                passChk = true;
+                System.out.println("본딩완료");
+            }else {
+                passFail = true;
+                System.out.println("본딩안됨");
+            }
+
+        }
+    };
+
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
+            System.out.println("!!ConnectionStatus status : " + status);
+            System.out.println("!!ConnectionState newState : " + newState);
+
+            registerReceiver(requestReceiver, filter);
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+
                 intentAction = ACTION_GATT_CONNECTED;
                 mConnectionState = STATE_CONNECTED;
                 broadcastUpdate(intentAction);
@@ -61,35 +103,70 @@ public class BleService extends Service {
                 Log.i(TAG, "Attempting to start service discovery:" +
                         bleGatt.discoverServices());
 
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            }else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 intentAction = ACTION_GATT_DISCONNECTED;
                 mConnectionState = STATE_DISCONNECTED;
                 Log.i(TAG, "Disconnected from GATT server.");
                 broadcastUpdate(intentAction);
             }
         }
+
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            System.out.println("!!Discovered status : " + status);
+
+
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
+                while(true){
+                    if(passFail){
+                        disconnect();
+                        break;
+                    }
+
+                    if(passChk){
+                        broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
+                        break;
+                    }
+                    try {
+                        Thread.sleep(500);
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
+
         }
+
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-            }
+            /*
+            GATT_SUCCESS : 0
+            GATT_INSUFFICIENT_AUTHENTICATION : 5
+            GATT_INSUFFICIENT_ENCRYPTION : 15
+            GATT_CONNECTION_CONGESTED : 143
+            */
 
+            System.out.println("!!Read status : " + status);
+
+            if(characteristic.getValue() != null && characteristic.getValue().length != 0){
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                }
+            }
         }
+
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
+
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             if(status == BluetoothGatt.GATT_SUCCESS){
@@ -156,6 +233,8 @@ public class BleService extends Service {
     }
 
     public boolean connect(final String address) {
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+
         if (bleAdapter == null || address == null) {
             return false;
         }
@@ -171,16 +250,18 @@ public class BleService extends Service {
             }
         }
 
-        final BluetoothDevice device = bleAdapter.getRemoteDevice(address);
+        device = bleAdapter.getRemoteDevice(address);
         if (device == null) {
             return false;
         }
-        // We want to directly connect to the device, so we are setting the autoConnect
-        // parameter to false.
+
+        System.out.println("getBondState : " + device.getBondState());
 
         bleGatt = device.connectGatt(this, false, mGattCallback);
+
         bleDeviceAdd = address;
         mConnectionState = STATE_CONNECTING;
+
         return true;
     }
 
@@ -188,6 +269,8 @@ public class BleService extends Service {
         if (bleAdapter == null || bleGatt == null) {
             return;
         }
+        passChk = false;
+        passFail = false;
         bleGatt.disconnect();
     }
 
@@ -208,7 +291,6 @@ public class BleService extends Service {
             return;
         }
         bleGatt.readCharacteristic(characteristic);
-
     }
 
     public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic,
@@ -232,5 +314,6 @@ public class BleService extends Service {
         if (bleGatt == null) return null;
         return bleGatt.getService(UUID.fromString("589294b8-7d2c-11ea-bc55-0242ac130003"));
     }
+
 
 }

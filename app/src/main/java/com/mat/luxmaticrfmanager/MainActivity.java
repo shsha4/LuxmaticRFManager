@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity{
     private ScrollView scroll;
     private ProgressBar progressBar;
     private ProgressDialog proDialog;
-    private TextView srHour,  ssHour;
+    private TextView srHour,  ssHour, nowHour;
     private EditText loraAdd, loraApp, loraNet;
 
     //스피너
@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity{
     private BluetoothAdapter bleAdapter;
     private BluetoothGattService gattService;
     private ArrayList<BluetoothDevice> devices = new ArrayList<>();
+    private BluetoothDevice selectDevice;
     private Handler handler;
     private boolean mScanning = false;
     private boolean mConnect = false;
@@ -98,6 +99,9 @@ public class MainActivity extends AppCompatActivity{
     private final byte FRAME_TYPE_URL = 0x10;
     //비콘 광고를 담당하는 객체 생성
     private BluetoothLeAdvertiser adv;
+
+    private final long FINISH_INTERVAL_TIME = 2000;
+    private long backPressedTime = 0;
 
     private BluetoothAdapter.LeScanCallback leScanCallback = new BluetoothAdapter.LeScanCallback(){
         @Override
@@ -181,6 +185,11 @@ public class MainActivity extends AppCompatActivity{
             }else if(bleService.ACTION_GATT_DISCONNECTED.equals(action)){
                 mConnect = false;
                 disconnectBtn.setText("기기 검색");
+
+                if(proDialog != null){
+                    proDialog.dismiss();
+                }
+
                 if(bleAdapter != null){
                     CreateListDiaLog();
                 }else{
@@ -199,7 +208,7 @@ public class MainActivity extends AppCompatActivity{
                 try{
                     getData1(gattService);
                 }catch(Exception e){
-                    Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "일출 일몰 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                     bleService.disconnect();
                 }
                 handler.postDelayed(new Runnable() {
@@ -208,11 +217,11 @@ public class MainActivity extends AppCompatActivity{
                         try{
                             getData2(gattService);
                         }catch (Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "예약 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
                     }
-                }, 400);
+                }, 500);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -220,11 +229,11 @@ public class MainActivity extends AppCompatActivity{
                         try{
                             getData3(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "심야 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
                     }
-                }, 800);
+                }, 1000);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -232,24 +241,24 @@ public class MainActivity extends AppCompatActivity{
                         try{
                             getData4(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "기간 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
 
                     }
-                }, 1200);
+                }, 1500);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         try{
                             getData5(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "디밍 제어 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
 
                     }
-                }, 1600);
+                }, 2000);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -257,51 +266,55 @@ public class MainActivity extends AppCompatActivity{
                         try{
                             getData7(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "Lora Add 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
 
                     }
-                }, 2000);
+                }, 2500);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         try{
                             getData8(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "Lora App key 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
 
                     }
-                }, 2400);
+                }, 3000);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         try{
                             getData9(gattService);
                         }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "Lora Net 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
                             bleService.disconnect();
                         }
 
                     }
-                }, 2800);
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        try{
-                            getData10(gattService);
-                        }catch(Exception e){
-                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
-                            bleService.disconnect();
-                        }
+                }, 3500);
 
-                    }
-                }, 3200);
 
+//                handler.postDelayed(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        try{
+//                            getData10(gattService);
+//                        }catch(Exception e){
+//                            Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+//                            bleService.disconnect();
+//                        }
+//
+//                    }
+//                }, 3200);
+                Log.v(TAG, "GATT GET DATA");
             }else if(bleService.ACTION_DATA_AVAILABLE.equals(action)){
+
                 readData = intent.getIntArrayExtra(BleService.EXTRA_DATA);
+
                 if(readData != null){
                     try{
                         if(temp == 0){
@@ -320,10 +333,12 @@ public class MainActivity extends AppCompatActivity{
                             setView8(readData);
                         }else if(temp == 7){
                             setView9(readData);
-                        }else if(temp == 8){
-                            setView10(readData);
                         }
+//                        else if(temp == 8){
+//                            setView10(readData);
+//                        }
                     }catch (Exception e){
+                        e.printStackTrace();
                         Toast.makeText(getApplicationContext(),"데이터 읽기에 실패 하였습니다. 다시 시도해 주세요", Toast.LENGTH_LONG).show();
                     }
                 }
@@ -658,21 +673,21 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        repBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!mConnect){
-                    Toast.makeText(getApplicationContext(), "장비를 연결해 주세요.", Toast.LENGTH_LONG).show();
-                }else{
-                    byte[] data = new byte[1];
-                    data[0] = (byte) Integer.parseInt((String) editRep.getSelectedItem());
-                    System.out.println(data[0]);
-                    final BluetoothGattCharacteristic repData = gattService.getCharacteristic(UUID.fromString("e1423cf2-9b07-11ea-bb37-0242ac130002"));
-                    repData.setValue(data);
-                    bleService.writeCharacteristic(repData);
-                }
-            }
-        });
+//        repBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                if(!mConnect){
+//                    Toast.makeText(getApplicationContext(), "장비를 연결해 주세요.", Toast.LENGTH_LONG).show();
+//                }else{
+//                    byte[] data = new byte[1];
+//                    data[0] = (byte) Integer.parseInt((String) editRep.getSelectedItem());
+//                    System.out.println(data[0]);
+//                    final BluetoothGattCharacteristic repData = gattService.getCharacteristic(UUID.fromString("e1423cf2-9b07-11ea-bb37-0242ac130002"));
+//                    repData.setValue(data);
+//                    bleService.writeCharacteristic(repData);
+//                }
+//            }
+//        });
 
         readBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -713,6 +728,7 @@ public class MainActivity extends AppCompatActivity{
                             ssDimming.setSelection(i);
                     }
                     ssHour.setText(String.valueOf(firstData1[8]) + "시 " + String.valueOf(firstData1[9]) + "분");
+                    nowHour.setText(String.valueOf(readData[10]) + " : " + String.valueOf(readData[11]));
 
                     if(firstData2[0] == 01){
                         re1Enable.setChecked(true);
@@ -879,6 +895,19 @@ public class MainActivity extends AppCompatActivity{
         });
     }
 
+    @Override
+    public void onBackPressed() {
+        long tempTime = System.currentTimeMillis();
+        long intervalTime = tempTime - backPressedTime;
+
+        if(intervalTime >= 0 && FINISH_INTERVAL_TIME >= intervalTime){
+            super.onBackPressed();
+        }else{
+            backPressedTime = tempTime;
+            Toast.makeText(getApplicationContext(), "한번 더 누르면 종료합니다.", Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void CreateListDiaLog(){
         String url = "MAS";
         AdvertiseSettings advertiseSettings = new AdvertiseSettings.Builder()
@@ -930,7 +959,7 @@ public class MainActivity extends AppCompatActivity{
                 proDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
                 proDialog.setMessage("기기 연결 중..");
                 proDialog.show();
-
+                selectDevice = bleAdapter.getRemoteDevice(selectAdd);
                 bleService.connect(selectAdd);
 
             }
@@ -968,6 +997,8 @@ public class MainActivity extends AppCompatActivity{
         intentFilter.addAction(BleService.ACTION_DATA_WRITE);
         return intentFilter;
     }
+
+
 
     @Override
     protected void onStop() {
@@ -1070,14 +1101,14 @@ public class MainActivity extends AppCompatActivity{
     }
 
     //보고주기
-    private void getData10(BluetoothGattService gattService)throws Exception{
-        BluetoothGattCharacteristic data = gattService.getCharacteristic(UUID.fromString("e1423cf2-9b07-11ea-bb37-0242ac130002"));
-        if(data != null){
-            bleService.readCharacteristic(data);
-        }else{
-            Toast.makeText(getApplicationContext(), "보고 주기 데이터를 읽지 못하였습니다", Toast.LENGTH_LONG).show();
-        }
-    }
+//    private void getData10(BluetoothGattService gattService)throws Exception{
+//        BluetoothGattCharacteristic data = gattService.getCharacteristic(UUID.fromString("e1423cf2-9b07-11ea-bb37-0242ac130002"));
+//        if(data != null){
+//            bleService.readCharacteristic(data);
+//        }else{
+//            Toast.makeText(getApplicationContext(), "보고 주기 데이터를 읽지 못하였습니다", Toast.LENGTH_LONG).show();
+//        }
+//    }
 
     //일출일몰
     private void setView1(int[] readData){
@@ -1114,6 +1145,7 @@ public class MainActivity extends AppCompatActivity{
                 ssDimming.setSelection(i);
         }
         ssHour.setText(String.valueOf(readData[8]) + "시 " + String.valueOf(readData[9]) + "분");
+        nowHour.setText(String.valueOf(readData[10]) + " : " + String.valueOf(readData[11]));
         temp++;
     }
 
@@ -1247,18 +1279,18 @@ public class MainActivity extends AppCompatActivity{
         }
         loraNet.setText(String.valueOf(viewData));
         temp++;
+        proDialog.dismiss();
     }
 
     //보고주기
-    private void setView10(int[] readData){
-        for(int i = 0; i < 25; i++){
-            if(Integer.parseInt((String)editRep.getItemAtPosition(i)) == readData[0]){
-                editRep.setSelection(i);
-            }
-        }
-        temp++;
-        proDialog.dismiss();
-    }
+//    private void setView10(int[] readData){
+//        for(int i = 0; i < 25; i++){
+//            if(Integer.parseInt((String)editRep.getItemAtPosition(i)) == readData[0]){
+//                editRep.setSelection(i);
+//            }
+//        }
+//        temp++;
+//    }
 
     //기본 ui 스케쥴 설정을 수정하였을때
     private void writeChk(int index){
@@ -1280,6 +1312,7 @@ public class MainActivity extends AppCompatActivity{
         //TextView
         srHour = (TextView) findViewById(R.id.srHour);
         ssHour = (TextView) findViewById(R.id.ssHour);
+        nowHour = (TextView) findViewById(R.id.nowHour);
 
         //EditText
         loraAdd = (EditText) findViewById(R.id.loraAdd);
@@ -1302,7 +1335,7 @@ public class MainActivity extends AppCompatActivity{
         n2Min = (Spinner) findViewById(R.id.n2Min);
         re2Hour = (Spinner) findViewById(R.id.re2Hour);
         re2Min = (Spinner) findViewById(R.id.re2Min);
-        editRep = (Spinner) findViewById(R.id.editRep);
+//        editRep = (Spinner) findViewById(R.id.editRep);
         setSrmin = (Spinner) findViewById(R.id.setSrmin);
         setSsmin = (Spinner) findViewById(R.id.setSsmin);
         sMonth = (Spinner) findViewById(R.id.sMonth);
@@ -1328,7 +1361,7 @@ public class MainActivity extends AppCompatActivity{
         addWriteBtn = (Button) findViewById(R.id.addWriteBtn);
         appWriteBtn = (Button) findViewById(R.id.appWriteBtn);
         netWriteBtn = (Button) findViewById(R.id.netWriteBtn);
-        repBtn = (Button) findViewById(R.id.repBtn);
+//        repBtn = (Button) findViewById(R.id.repBtn);
         onBtn = (Button) findViewById(R.id.onBtn);
         offBtn = (Button) findViewById(R.id.offBtn);
     }
