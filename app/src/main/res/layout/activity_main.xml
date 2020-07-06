@@ -960,7 +960,7 @@
                     android:id="@+id/readBtn"
                     android:layout_width="200dp"
                     android:layout_height="match_parent"
-                    android:text="처음으로"
+                    android:text="설정정보확인"
                     />
 
                 <Button

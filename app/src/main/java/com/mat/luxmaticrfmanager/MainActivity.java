@@ -76,19 +76,13 @@ public class MainActivity extends AppCompatActivity{
     private Handler handler;
     private boolean mScanning = false;
     private boolean mConnect = false;
+    private boolean infoChk = false;
     private static int REQUEST_ACCESS_FINE_LOCATION = 1;
     private static final long SCAN_PERIOD = 10000;
     private String selectAdd;
     private int temp = 0;
     private int writeTemp = 0;
     private int[] deviceInfo;
-
-    //초기 read 값을 받는 배열
-    private int[] firstData1;
-    private int[] firstData2;
-    private int[] firstData3;
-    private int[] firstData4;
-    private int[] firstData5;
 
     private ArrayAdapter<String> bleListAdapter;
     private List list = new ArrayList();
@@ -221,7 +215,7 @@ public class MainActivity extends AppCompatActivity{
                             bleService.disconnect();
                         }
                     }
-                }, 500);
+                }, 300);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -233,7 +227,7 @@ public class MainActivity extends AppCompatActivity{
                             bleService.disconnect();
                         }
                     }
-                }, 1000);
+                }, 600);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -246,7 +240,7 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 1500);
+                }, 900);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -258,7 +252,7 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 2000);
+                }, 1200);
 
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -271,7 +265,7 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 2500);
+                }, 1500);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -283,7 +277,7 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 3000);
+                }, 1800);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -295,7 +289,7 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 3500);
+                }, 2100);
 
 
 //                handler.postDelayed(new Runnable() {
@@ -315,7 +309,7 @@ public class MainActivity extends AppCompatActivity{
 
                 readData = intent.getIntArrayExtra(BleService.EXTRA_DATA);
 
-                if(readData != null){
+                if(readData != null && !infoChk){
                     try{
                         if(temp == 0){
                             setView1(readData);
@@ -342,6 +336,11 @@ public class MainActivity extends AppCompatActivity{
                         Toast.makeText(getApplicationContext(),"데이터 읽기에 실패 하였습니다. 다시 시도해 주세요", Toast.LENGTH_LONG).show();
                     }
                 }
+
+                if(infoChk){
+                    setView6(readData);
+                }
+
                 Log.v(TAG, "GATT DATA READ");
             }else if(bleService.ACTION_DATA_WRITE.equals(action)){
                 Log.i(TAG, "GATT DATA WRITE");
@@ -430,22 +429,18 @@ public class MainActivity extends AppCompatActivity{
         deviceInfoBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                infoChk = true;
 
                 if(!mConnect){
                     Toast.makeText(getApplicationContext(), "장비를 연결해 주세요.", Toast.LENGTH_LONG).show();
                 }else{
+
                     try{
                         getData6(gattService);
-                    }catch (Exception e){
-                        Toast.makeText(getApplicationContext(), "데이터를 가져오지 못했습니다. 다시 시도해 주세요.", Toast.LENGTH_LONG).show();
+                    }catch(Exception e){
+                        Toast.makeText(getApplicationContext(), "기기 정보 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                        bleService.disconnect();
                     }
-
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            setView6(readData);
-                        }
-                    }, 200);
 
                     handler.postDelayed(new Runnable() {
                         @Override
@@ -469,7 +464,7 @@ public class MainActivity extends AppCompatActivity{
                             devInfomsg += "상태\n";
                             devInfomsg += "----------------------------\n";
 
-                            String [] arrAlarmName = {"통신이상", "누설전류이상", "디밍이상", "과전류이상", "정전알람", "GPS알람"};
+                            String [] arrAlarmName = {"누전 알람", "전력량 알람", "과전류 알람", "GPS 알람", "LORA 알람", "미터링 알람", "NOT USED", "정전 알람"};
 
                             for(int chk = 0; chk < arrAlarmName.length; chk++){
                                 int comp = 1 << chk;
@@ -693,108 +688,110 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onClick(View v) {
                 if(!mConnect){
-                    Toast.makeText(getApplicationContext(), "장비를 연결해 주세요.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "장비를 연결해 주세요", Toast.LENGTH_LONG).show();
                 }else{
-                    Toast.makeText(getApplicationContext(), "처음 세팅 값으로 돌아갑니다.", Toast.LENGTH_LONG).show();
-                    if(firstData1[0] == 01){
-                        srEnable.setChecked(true);
-                    }else{
-                        srEnable.setChecked(false);
-                    }
-                    if(firstData1[5] == 01){
-                        ssEnable.setChecked(true);
-                    }else{
-                        ssEnable.setChecked(false);
+                    Toast.makeText(getApplicationContext(), "연결된 장비의 설정 정보를 가져옵니다", Toast.LENGTH_LONG).show();
+
+                    gattService = bleService.getSupportedGattServices();
+                    proDialog.show();
+
+                    if(gattService == null){
+                        Toast.makeText(getApplicationContext(), "서비스 연결 요청 실패 어플리케이션을 다시 실행시켜 주세요", Toast.LENGTH_LONG).show();
+                        finish();
                     }
 
-                    byte casting1 = (byte) firstData1[1];
-                    byte casting2 = (byte) firstData1[6];
+                    try{
+                        getData1(gattService);
+                    }catch(Exception e){
+                        Toast.makeText(getApplicationContext(), "일출 일몰 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                        bleService.disconnect();
+                    }
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData2(gattService);
+                            }catch (Exception e){
+                                Toast.makeText(getApplicationContext(), "예약 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
+                        }
+                    }, 300);
 
-                    for(int i = 0; i < 13; i++){
-                        if(Integer.parseInt((String) setSrmin.getItemAtPosition(i)) == casting1)
-                            setSrmin.setSelection(i);
-                    }
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) srDimming.getItemAtPosition(i)) == firstData1[2])
-                            srDimming.setSelection(i);
-                    }
-                    srHour.setText(String.valueOf(firstData1[3]) + "시 " + String.valueOf(firstData1[4]) + "분");
-                    for(int i = 0; i < 13; i++){
-                        if(Integer.parseInt((String) setSsmin.getItemAtPosition(i)) == casting2)
-                            setSsmin.setSelection(i);
-                    }
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) ssDimming.getItemAtPosition(i)) == firstData1[7])
-                            ssDimming.setSelection(i);
-                    }
-                    ssHour.setText(String.valueOf(firstData1[8]) + "시 " + String.valueOf(firstData1[9]) + "분");
-                    nowHour.setText(String.valueOf(readData[10]) + " : " + String.valueOf(readData[11]));
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData3(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "심야 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
+                        }
+                    }, 600);
 
-                    if(firstData2[0] == 01){
-                        re1Enable.setChecked(true);
-                    }else{
-                        re1Enable.setChecked(false);
-                    }
-                    if(firstData2[4] == 01){
-                        re2Enable.setChecked(true);
-                    }else{
-                        re2Enable.setChecked(false);
-                    }
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData4(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "기간 설정 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
 
-                    re1Hour.setSelection(firstData2[1]);
-                    re1Min.setSelection(firstData2[2]);
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) re1Dimming.getItemAtPosition(i)) == firstData2[3])
-                            re1Dimming.setSelection(i);
-                    }
-                    re2Hour.setSelection(firstData2[5]);
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) re2Dimming.getItemAtPosition(i)) == firstData2[7])
-                            re2Dimming.setSelection(i);
-                    }
-                    if(firstData3[0] == 01){
-                        n1Enable.setChecked(true);
-                    }else{
-                        n1Enable.setChecked(false);
-                    }
-                    if(firstData3[4] == 01){
-                        n2Enable.setChecked(true);
-                    }else{
-                        n2Enable.setChecked(false);
-                    }
+                        }
+                    }, 900);
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData5(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "디밍 제어 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
 
-                    n1Hour.setSelection(firstData3[1]);
-                    n1Min.setSelection(firstData3[2]);
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) n1Dimming.getItemAtPosition(i)) == firstData3[3])
-                            n1Dimming.setSelection(i);
-                    }
-                    n2Hour.setSelection(firstData3[5]);
-                    n2Min.setSelection(firstData3[6]);
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) n2Dimming.getItemAtPosition(i)) == firstData3[7])
-                            n2Dimming.setSelection(i);
-                    }
-                    for(int i = 0; i < 12; i++){
-                        if(Integer.parseInt((String) sMonth.getItemAtPosition(i)) == firstData4[0])
-                            sMonth.setSelection(i);
-                    }
-                    for(int i = 0; i < 31; i++){
-                        if(Integer.parseInt((String) sDate.getItemAtPosition(i)) == firstData4[1])
-                            sDate.setSelection(i);
-                    }
-                    for(int i = 0; i < 12; i++){
-                        if(Integer.parseInt((String) eMonth.getItemAtPosition(i)) == firstData4[2])
-                            eMonth.setSelection(i);
-                    }
-                    for(int i = 0; i < 31; i++){
-                        if(Integer.parseInt((String) eDate.getItemAtPosition(i)) == firstData4[3])
-                            eDate.setSelection(i);
-                    }
-                    for(int i = 0; i < 11; i++){
-                        if(Integer.parseInt((String) editDimg.getItemAtPosition(i)) == firstData5[0])
-                            editDimg.setSelection(i);
-                    }
+                        }
+                    }, 1200);
+
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData7(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "Lora Add 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
+
+                        }
+                    }, 1500);
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData8(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "Lora App key 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
+
+                        }
+                    }, 1800);
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                getData9(gattService);
+                            }catch(Exception e){
+                                Toast.makeText(getApplicationContext(), "Lora Net 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                bleService.disconnect();
+                            }
+
+                        }
+                    }, 2100);
+
                 }
             }
         });
@@ -1112,7 +1109,6 @@ public class MainActivity extends AppCompatActivity{
 
     //일출일몰
     private void setView1(int[] readData){
-        firstData1 = readData;
 
         if(readData[0] == 01){
             srEnable.setChecked(true);
@@ -1151,7 +1147,6 @@ public class MainActivity extends AppCompatActivity{
 
     //예약설정
     private void setView2(int[] readData){
-        firstData2 = readData;
 
         if(readData[0] == 01){
             re1Enable.setChecked(true);
@@ -1167,7 +1162,7 @@ public class MainActivity extends AppCompatActivity{
         re1Hour.setSelection(readData[1]);
         re1Min.setSelection(readData[2]);
         for(int i = 0; i < 11; i++){
-            if(Integer.parseInt((String) re1Dimming.getItemAtPosition(i)) == firstData2[3])
+            if(Integer.parseInt((String) re1Dimming.getItemAtPosition(i)) == readData[3])
                 re1Dimming.setSelection(i);
         }
         re2Hour.setSelection(readData[5]);
@@ -1181,7 +1176,6 @@ public class MainActivity extends AppCompatActivity{
 
     //심야설정
     private void setView3(int[] readData){
-        firstData3 = readData;
 
         if(readData[0] == 01){
             n1Enable.setChecked(true);
@@ -1211,7 +1205,6 @@ public class MainActivity extends AppCompatActivity{
 
     //기간설정
     private void setView4(int[] readData){
-        firstData4 = readData;
 
         for(int i = 0; i < 12; i++){
             if(Integer.parseInt((String) sMonth.getItemAtPosition(i)) == readData[0])
@@ -1234,7 +1227,6 @@ public class MainActivity extends AppCompatActivity{
 
     //디밍제어
     private void setView5(int[] readData){
-        firstData5 = readData;
         for(int i = 0; i < 11; i++){
             if(Integer.parseInt((String) editDimg.getItemAtPosition(i)) == readData[0])
                 editDimg.setSelection(i);
@@ -1245,6 +1237,7 @@ public class MainActivity extends AppCompatActivity{
     //기기상태
     private void setView6(int[] readData){
         deviceInfo = readData;
+        infoChk = false;
     }
 
     //Lora address
@@ -1278,7 +1271,7 @@ public class MainActivity extends AppCompatActivity{
             viewData += result;
         }
         loraNet.setText(String.valueOf(viewData));
-        temp++;
+        temp = 0;
         proDialog.dismiss();
     }
 
@@ -1296,9 +1289,8 @@ public class MainActivity extends AppCompatActivity{
     private void writeChk(int index){
         if(index >= 4){
             proDialog.dismiss();
-            Toast.makeText(this, "스케쥴 수정 완료 연결을 종료합니다.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "스케쥴 수정 완료 수정 값 확인은 설정정보확인 버튼을 눌러주세요", Toast.LENGTH_LONG).show();
             writeTemp = 0;
-            bleService.disconnect();
         }
     }
     private void viewSetting(){
