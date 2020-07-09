@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity{
 
     //EXTRA_DATA를 받는 배열
     private int[] readData;
+    private String[] loraData;
 
     private BleService bleService;
     private BluetoothAdapter bleAdapter;
@@ -446,6 +447,10 @@ public class MainActivity extends AppCompatActivity{
                         @Override
                         public void run() {
                             String devInfomsg = "";
+                            devInfomsg += "----------------------------\n";
+                            devInfomsg += "DEV ADDR : " + loraData[0] + " " + loraData[1] + " " + loraData[2] + " " + loraData[3] + "\n";
+                            devInfomsg += "DEV EUI : " + loraData[4] + " " + loraData[5] + " " + loraData[6] + " " + loraData[7] + " " + loraData[8] + " " + loraData[9] + " " + loraData[10] + " " + loraData[11] + "\n";
+                            devInfomsg += "----------------------------\n";
 
                             if(deviceInfo[0] == 0){
                                 devInfomsg += "통신상태 : NO\n";
@@ -1131,7 +1136,22 @@ public class MainActivity extends AppCompatActivity{
             if(Integer.parseInt((String) srDimming.getItemAtPosition(i)) == readData[2])
                 srDimming.setSelection(i);
         }
-        srHour.setText(String.valueOf(readData[3]) + "시 " + String.valueOf(readData[4]) + "분");
+
+        String srHourData;
+        String srMinData;
+        if(readData[3] < 10){
+            srHourData = "0" + String.valueOf(readData[3]);
+        }else{
+            srHourData = String.valueOf(readData[3]);
+        }
+
+        if(readData[4] < 10){
+            srMinData = "0" + String.valueOf(readData[4]);
+        }else{
+            srMinData = String.valueOf(readData[4]);
+        }
+
+        srHour.setText(srHourData + "시 " + srMinData + "분");
         for(int i = 0; i < 13; i++){
             if(Integer.parseInt((String) setSsmin.getItemAtPosition(i)) == casting2)
                 setSsmin.setSelection(i);
@@ -1140,8 +1160,18 @@ public class MainActivity extends AppCompatActivity{
             if(Integer.parseInt((String) ssDimming.getItemAtPosition(i)) == readData[7])
                 ssDimming.setSelection(i);
         }
-        ssHour.setText(String.valueOf(readData[8]) + "시 " + String.valueOf(readData[9]) + "분");
-        nowHour.setText(String.valueOf(readData[10]) + " : " + String.valueOf(readData[11]));
+
+        String[] nowHourData = new String[4];
+        for(int i = 0; i < nowHourData.length; i++){
+            if(readData[i + 8] < 10){
+                nowHourData[i] = "0" + String.valueOf(readData[i + 8]);
+            }else{
+                nowHourData[i] = String.valueOf(readData[i + 8]);
+            }
+        }
+
+        ssHour.setText(nowHourData[0] + "시 " + nowHourData[1] + "분");
+        nowHour.setText(nowHourData[2] + " : " + nowHourData[3]);
         temp++;
     }
 
@@ -1243,9 +1273,10 @@ public class MainActivity extends AppCompatActivity{
     //Lora address
     private void setView7(int[] readData){
         String viewData = "";
+        loraData = hexCating(readData);
         String[] hexData = hexCating(readData);
-        for(String result : hexData){
-            viewData += result;
+        for(int i = 0; i < 4; i++){
+            viewData += hexData[i];
         }
         loraAdd.setText(String.valueOf(viewData));
         temp++;
