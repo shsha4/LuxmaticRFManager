@@ -80,6 +80,7 @@
                     android:id="@+id/loraAdd"
                     android:textSize="12sp"
                     android:hint="16진수 4개 데이터를 넣어주세요"
+                    android:textAlignment="center"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"/>
 
@@ -112,6 +113,7 @@
                     android:id="@+id/loraApp"
                     android:textSize="12sp"
                     android:hint="16진수 16개 데이터를 넣어주세요"
+                    android:textAlignment="center"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"/>
 
@@ -144,6 +146,7 @@
                     android:id="@+id/loraNet"
                     android:textSize="12sp"
                     android:hint="16진수 16개 데이터를 넣어주세요"
+                    android:textAlignment="center"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"/>
 
@@ -156,6 +159,43 @@
                     android:layout_width="80dp"
                     android:layout_height="35dp"
                     android:text="변경"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:layout_marginLeft="10dp"
+                    android:text="보고 주기 : "
+                    android:textStyle="bold" />
+
+
+                <EditText
+                    android:id="@+id/editRep"
+                    android:hint="1~255분"
+                    android:layout_marginLeft="8dp"
+                    android:textAlignment="center"
+                    android:textSize="12sp"
+                    android:inputType="number"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"/>
+
+                <Button
+                    android:id="@+id/repBtn"
+                    android:layout_width="80dp"
+                    android:layout_height="35dp"
+                    android:layout_marginLeft="12dp"
+                    android:background="#122e46"
+                    android:text="변경"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 
@@ -207,7 +247,7 @@
                 android:textColor="#122e46"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="가로등"/>
+                android:text="보안등"/>
 
             <Button
                 android:id="@+id/onBtn"
@@ -271,55 +311,6 @@
                 android:text="변경"/>
 
         </LinearLayout>
-
-<!--        <View-->
-<!--            android:layout_marginTop="10dp"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="2dp"-->
-<!--            android:background="#183e6b"/>-->
-
-<!--        <LinearLayout-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_marginTop="10dp"-->
-<!--            android:orientation="horizontal">-->
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_marginLeft="10dp"-->
-<!--                android:text="보고주기 : "-->
-<!--                android:textColor="#122e46"-->
-<!--                android:textStyle="bold" />-->
-
-
-<!--            <Spinner-->
-<!--                android:id="@+id/editRep"-->
-<!--                android:layout_width="100dp"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:entries="@array/report"-->
-<!--                android:spinnerMode="dropdown"-->
-<!--                android:textAlignment="textEnd" />-->
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_marginLeft="1dp"-->
-<!--                android:text="분"-->
-<!--                android:textStyle="bold" />-->
-
-<!--            <Button-->
-<!--                android:id="@+id/repBtn"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="35dp"-->
-<!--                android:layout_marginLeft="10dp"-->
-<!--                android:background="#122e46"-->
-<!--                android:text="변경"-->
-<!--                android:textColor="#FFFFFF"-->
-<!--                android:textStyle="bold" />-->
-
-
-<!--        </LinearLayout>-->
 
         <View
             android:layout_marginTop="10dp"
