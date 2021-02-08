@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity{
     private String selectAdd;
     private int temp = 0;
     private int writeTemp = 0;
+    private int loraTemp = 0;
     private int[] deviceInfo;
 
     private ArrayAdapter<String> bleListAdapter;
@@ -256,7 +257,7 @@ public class MainActivity extends AppCompatActivity{
                     }
                 }, 1200);
 
-               /*handler.postDelayed(new Runnable() {
+               handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         try{
@@ -267,8 +268,8 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 1500);*/
-                handler.postDelayed(new Runnable() {
+                }, 1500);
+                /*handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         try{
@@ -304,13 +305,13 @@ public class MainActivity extends AppCompatActivity{
                         }
 
                     }
-                }, 2100);
+                }, 2100);*/
                 Log.v(TAG, "GATT GET DATA");
             }else if(bleService.ACTION_DATA_AVAILABLE.equals(action)){
 
                 readData = intent.getIntArrayExtra(BleService.EXTRA_DATA);
 
-                if(readData != null && !infoChk){
+                if(readData != null && !infoChk && !loraChk){
                     try{
                         if(temp == 0){
                             setView1(readData);
@@ -322,15 +323,15 @@ public class MainActivity extends AppCompatActivity{
                             setView4(readData);
                         }else if(temp == 4){
                             setView5(readData);
-                        }/*else if(temp == 5){
+                        }else if(temp == 5){
                             setView7(readData);
-                        }*/else if(temp == 5){
+                        }/*else if(temp == 5){
                             setView8(readData);
                         }else if(temp == 6){
                             setView9(readData);
                         }else if(temp == 7){
                             setView10(readData);
-                        }
+                        }*/
                     }catch (Exception e){
                         e.printStackTrace();
                         Toast.makeText(getApplicationContext(),"데이터 읽기에 실패 하였습니다. 다시 시도해 주세요", Toast.LENGTH_LONG).show();
@@ -342,8 +343,13 @@ public class MainActivity extends AppCompatActivity{
                 }
 
                 if(loraChk) {
-                    System.out.println("조건까진 오니?");
-                    setView7(readData);
+                    if(loraTemp == 0) {
+                        setView8(readData);
+                    }else if(loraTemp == 1) {
+                        setView9(readData);
+                    }else if(loraTemp == 2) {
+                        setView10(readData);
+                    }
                 }
 
                 Log.v(TAG, "GATT DATA READ");
@@ -426,15 +432,44 @@ public class MainActivity extends AppCompatActivity{
                         loraLayout.setVisibility(View.GONE);
                     }else{
                         loraChk =true;
-
-                        try{
-                            getData7(gattService);
-                        }catch (Exception e) {
-                            Toast.makeText(getApplicationContext(), "Lora Add 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
-                            bleService.disconnect();
-                        }
-
                         loraLayout.setVisibility(View.VISIBLE);
+
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    getData8(gattService);
+                                } catch(Exception e) {
+                                    Toast.makeText(getApplicationContext(), "Lora App key 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                    bleService.disconnect();
+                                }
+                            }
+                        },100);
+
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    getData9(gattService);
+                                } catch (Exception e) {
+                                    Toast.makeText(getApplicationContext(), "Lora Net 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                    bleService.disconnect();
+                                }
+
+                            }
+                        }, 400);
+
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    getData10(gattService);
+                                } catch (Exception e) {
+                                    Toast.makeText(getApplicationContext(), "보고 주기 데이터를 가져오지 못했습니다. 다시 연결해 주세요.", Toast.LENGTH_LONG).show();
+                                    bleService.disconnect();
+                                }
+                            }
+                        }, 700);
                     }
                 }
             }
@@ -773,7 +808,7 @@ public class MainActivity extends AppCompatActivity{
                         }
                     }, 1200);
 
-                    /*handler.postDelayed(new Runnable() {
+                    handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             try{
@@ -784,8 +819,8 @@ public class MainActivity extends AppCompatActivity{
                             }
 
                         }
-                    }, 1500);*/
-                    handler.postDelayed(new Runnable() {
+                    }, 1500);
+                    /*handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             try{
@@ -821,7 +856,7 @@ public class MainActivity extends AppCompatActivity{
                             }
 
                         }
-                    }, 2100);
+                    }, 2100);*/
 
                 }
             }
@@ -1307,7 +1342,8 @@ public class MainActivity extends AppCompatActivity{
         }
         loraAdd.setText(String.valueOf(viewData));
 //        temp++;
-        loraChk = false;
+        temp = 0;
+        proDialog.dismiss();
     }
 
     //Lora App key
@@ -1319,7 +1355,7 @@ public class MainActivity extends AppCompatActivity{
             viewData += result;
         }
         loraApp.setText(String.valueOf(viewData));
-        temp++;
+        loraTemp++;
     }
 
     //Lora Net
@@ -1330,14 +1366,14 @@ public class MainActivity extends AppCompatActivity{
             viewData += result;
         }
         loraNet.setText(String.valueOf(viewData));
-        temp++;
+        loraTemp++;
     }
 
     //보고주기
     private void setView10(int[] readData){
         editRep.setText(String.valueOf(readData[0]));
-        temp = 0;
-        proDialog.dismiss();
+        loraChk = false;
+        loraTemp = 0;
     }
 
     //기본 ui 스케쥴 설정을 수정하였을때
